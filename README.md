@@ -76,3 +76,10 @@ Payload:
 	"message": "cadastrar lote de laranja com 50 unidades plantado no talhão C3"
 }
 ```
+
+## Documentação Swagger
+
+Com o servidor rodando, acesse:
+
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc

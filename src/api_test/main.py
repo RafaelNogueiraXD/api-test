@@ -6,13 +6,30 @@ que usa multiagentes de IA para estruturar dados de produto/lote agrícola.
 
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import Body, FastAPI
 from api_test.agents import AgriculturalMultiAgentService
 from api_test.schemas import MessageInput, SimpleInput, TelefoneInput
 from api_test.api_proraf import ProrafAPI
 from api_test.settings import settings
 
-app = FastAPI()
+api_tags = [
+    {"name": "Health", "description": "Verificação básica de disponibilidade da API."},
+    {"name": "WhatsApp", "description": "Integração de verificação de telefone com backend ProRAF."},
+    {"name": "Chatbot", "description": "Rotas de conversa com IA para operações agrícolas."},
+    {"name": "Utilitários", "description": "Rotas auxiliares de teste."},
+]
+
+
+app = FastAPI(
+    title="API Test - Agentes Agrícolas",
+    description=(
+        "API para integração com ProRAF e chatbot de IA multiagente para operações "
+        "de produto e lote agrícola."
+    ),
+    version="0.1.0",
+    openapi_tags=api_tags,
+)
+
 multi_agent_service = AgriculturalMultiAgentService()
 proraf_client = ProrafAPI(
     base_url=settings.proraf_api_base_url,
@@ -21,30 +38,125 @@ proraf_client = ProrafAPI(
 )
 
     
-@app.get("/")
+@app.get(
+    "/",
+    tags=["Health"],
+    summary="Health check da API",
+    description="Retorna uma mensagem simples indicando que a API está online.",
+)
 async def root():
+    """Endpoint de verificação rápida de disponibilidade da API."""
     return {"message": "Hello World"}
 
 
-@app.post("/verificaTelefone")
-async def verifica_telefone(data: TelefoneInput) -> dict[str, Any]:
-    telefone = data.telefone.strip()
+@app.post(
+    "/verificaTelefone",
+    tags=["WhatsApp"],
+    summary="Verifica se telefone existe no ProRAF",
+    description=(
+        "Recebe um telefone (também aceita formato WhatsApp `numero@s.whatsapp.net`) "
+        "e consulta o backend ProRAF para validar se o usuário existe."
+    ),
+)
+async def verifica_telefone(
+    data: TelefoneInput = Body(
+        ...,
+        examples={
+            "telefone_numerico": {
+                "summary": "Telefone comum",
+                "value": {"telefone": "55996852212"},
+            },
+            "telefone_whatsapp": {
+                "summary": "Formato WhatsApp",
+                "value": {"telefone": "55996852212@s.whatsapp.net"},
+            },
+        },
+    )
+) -> dict[str, Any]:
+    """Normaliza o telefone e consulta existência no backend ProRAF."""
+    # se a resposta vier 555596852212@s.whatsapp.net, extrai apenas o número
+    if data.telefone.endswith("@s.whatsapp.net"):
+        telefone1 = data.telefone.split("@")[0]
+        telefone = telefone1.strip()
+    else:
+        telefone = data.telefone.strip()
     return proraf_client.verificar_telefone(telefone)
 
 
-@app.post("/message")
-async def create_message(data: SimpleInput):
+@app.post(
+    "/message",
+    tags=["Utilitários"],
+    summary="Echo de mensagem",
+    description="Endpoint simples para testes, devolve a mensagem recebida.",
+)
+async def create_message(
+    data: SimpleInput = Body(
+        ...,
+        examples={
+            "exemplo": {
+                "summary": "Payload básico",
+                "value": {"message": "Olá API"},
+            }
+        },
+    )
+):
+    """Retorna a mensagem enviada no request."""
     return {"message": f"You sent: {data.message}"}
 
 
-@app.post("/mensagem")
-@app.post("/chatbot")
-async def mensagem(data: MessageInput) -> dict[str, Any] | int:
+@app.post(
+    "/mensagem",
+    tags=["Chatbot"],
+    summary="Conversa com IA (rota principal)",
+    description=(
+        "Recebe mensagem do usuário e opcionalmente telefone para execução de "
+        "operações no ProRAF (produto/lote)."
+    ),
+)
+@app.post("/chatbot", include_in_schema=False)
+async def mensagem(
+    data: MessageInput = Body(
+        ...,
+        examples={
+            "cadastro_lote": {
+                "summary": "Cadastro de lote",
+                "value": {
+                    "message": "cadastre um lote de 25 kg de tomate",
+                    "telefone": "55996852212",
+                },
+            },
+            "consulta_produtos": {
+                "summary": "Consulta de produtos",
+                "value": {
+                    "message": "listar meus produtos",
+                    "telefone": "55996852212",
+                },
+            },
+        },
+    )
+) -> dict[str, Any] | int:
+    """Executa o fluxo IA -> planejamento -> CRUD -> resposta natural."""
     print("Received message:", data.message)
     return multi_agent_service.process_message(data.message, data.telefone)
 
-@app.post("/choose")
-async def choose_option(data: SimpleInput):
+
+@app.post(
+    "/choose",
+    tags=["Utilitários"],
+    summary="Escolha de opção fixa",
+    description="Retorna uma resposta fixa para as opções produto, lote ou transação.",
+)
+async def choose_option(
+    data: SimpleInput = Body(
+        ...,
+        examples={
+            "produto": {"summary": "Escolha produto", "value": {"message": "produto"}},
+            "lote": {"summary": "Escolha lote", "value": {"message": "lote"}},
+            "transacao": {"summary": "Escolha transação", "value": {"message": "transação"}},
+        },
+    )
+):
+    """Endpoint de teste para respostas pré-definidas."""
     mensagem = data.message.lower()
     if mensagem == "produto":
         return {"message": "Você escolheu a opção Produto"}
