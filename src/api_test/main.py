@@ -80,7 +80,12 @@ async def verifica_telefone(
         telefone = telefone1.strip()
     else:
         telefone = data.telefone.strip()
-    return proraf_client.verificar_telefone(telefone)
+
+    resultado = proraf_client.verificar_telefone(telefone)
+    return {
+        "telefone": telefone,
+        "resultado": resultado,
+    }
 
 
 @app.post(
@@ -137,7 +142,12 @@ async def mensagem(
 ) -> dict[str, Any] | int:
     """Executa o fluxo IA -> planejamento -> CRUD -> resposta natural."""
     print("Received message:", data.message)
-    return multi_agent_service.process_message(data.message, data.telefone)
+    if data.telefone.endswith("@s.whatsapp.net"):
+        telefone1 = data.telefone.split("@")[0]
+        telefone = telefone1.strip()
+    else:
+        telefone = data.telefone.strip() 
+    return multi_agent_service.process_message(data.message, telefone)
 
 
 @app.post(
