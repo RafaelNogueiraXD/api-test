@@ -129,7 +129,7 @@ MENSAGEM DO USUÁRIO:
 PRODUCT_AGENT_PROMPT = """
 Você é um agente especialista em PRODUTO agrícola.
 Sua tarefa é analisar a mensagem e extrair APENAS dados de produto.
-
+É importante que o produto seja Agrícola (ex: laranja, milho, soja, etc) - se não identificar como produto agrícola, retorne 0.
 {input_templates}
 
 {output_contract}
@@ -198,6 +198,8 @@ Formato de saída obrigatório:
 Regras:
 - Use o `telefone` recebido no payload quando necessário.
 - Se não houver intenção de CRUD, use `operation = "none"` e `api_method = null`.
+- IMPORTANTE: Este sistema é EXCLUSIVO para produtos agrícolas (ex: frutas, verduras, legumes, grãos, cereais, oleaginosas, hortaliças, tubérculos, raízes, sementes, forragens, etc.).
+  Se o produto mencionado NÃO for agrícola (ex: cigarros, eletrônicos, roupas, combustíveis, medicamentos, etc.), use `operation = "none"` e `api_method = null`.
 - Para criar produto, preencha ao menos: telefone + name.
 - Para criar lote:
   - Se houver nome do produto mas não houver `product_id`, ainda assim use `operation = "create_batch"` e `api_method = "criar_lote"`.
@@ -223,6 +225,15 @@ Saída:
     "dt_colheita": null
   },
   "reason": "Cadastrar lote com produto por nome; product_id será resolvido pela aplicação."
+}
+
+Entrada: "cadastre um lote de 25 kg de cigarro"
+Saída:
+{
+  "operation": "none",
+  "api_method": null,
+  "request_body": {},
+  "reason": "Cigarro não é um produto agrícola. Este sistema aceita apenas produtos de origem agrícola."
 }
 """.strip()
 

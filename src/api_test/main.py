@@ -148,31 +148,3 @@ async def mensagem(
     else:
         telefone = data.telefone.strip() 
     return multi_agent_service.process_message(data.message, telefone)
-
-
-@app.post(
-    "/choose",
-    tags=["Utilitários"],
-    summary="Escolha de opção fixa",
-    description="Retorna uma resposta fixa para as opções produto, lote ou transação.",
-)
-async def choose_option(
-    data: SimpleInput = Body(
-        ...,
-        examples={
-            "produto": {"summary": "Escolha produto", "value": {"message": "produto"}},
-            "lote": {"summary": "Escolha lote", "value": {"message": "lote"}},
-            "transacao": {"summary": "Escolha transação", "value": {"message": "transação"}},
-        },
-    )
-):
-    """Endpoint de teste para respostas pré-definidas."""
-    mensagem = data.message.lower()
-    if mensagem == "produto":
-        return {"message": "Você escolheu a opção Produto"}
-    elif mensagem == "lote":
-        return {"message": "Você escolheu a opção Lote"}
-    elif mensagem == "transação":
-        return {"message": "Você escolheu a opção Transação"}
-    else:
-        return {"message": "Opção inválida"}
