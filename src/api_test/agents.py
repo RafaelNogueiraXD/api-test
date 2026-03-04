@@ -18,6 +18,7 @@ from api_test.prompts import (
     CRUD_PLANNER_PROMPT,
     CRUD_RESULT_MESSAGE_PROMPT,
     USER_MESSAGE_TEMPLATE,
+    WHATSAPP_MESSAGE_PROMPT,
 )
 from api_test.settings import settings
 
@@ -196,6 +197,26 @@ class AgriculturalMultiAgentService:
 
         return None
 
+    def _build_whatsapp_message(
+        self,
+        user_message: str,
+        operation: str,
+        planner_output: dict[str, Any],
+        api_result: dict[str, Any] | None = None,
+    ) -> str:
+        payload = {
+            "mensagem_usuario": user_message,
+            "operation": operation,
+            "api_method": planner_output.get("api_method"),
+            "request_body": planner_output.get("request_body", {}),
+            "resultado_api": api_result or {},
+            "frontend_url": settings.proraf_frontend_url,
+        }
+        return self._invoke_text(
+            WHATSAPP_MESSAGE_PROMPT,
+            json.dumps(payload, ensure_ascii=False),
+        )
+
     def process_message(self, user_message: str, telefone: str | None = None) -> dict[str, Any] | int:
         if self.client is None:
             return {
@@ -238,7 +259,12 @@ class AgriculturalMultiAgentService:
                     ensure_ascii=False,
                 ),
             )
+            whatsapp_message = self._build_whatsapp_message(
+                user_message, "none", planner_output
+            )
             return {
+                "whatsapp_message": whatsapp_message
+                or "Não identifiquei uma ação de cadastro/consulta. Pode me dizer o que deseja fazer?",
                 "operation": "none",
                 "planner": planner_output,
                 "assistant_message": human
@@ -257,8 +283,12 @@ class AgriculturalMultiAgentService:
             CRUD_RESULT_MESSAGE_PROMPT,
             json.dumps(human_message_payload, ensure_ascii=False),
         )
+        whatsapp_message = self._build_whatsapp_message(
+            user_message, operation, planner_output, api_result
+        )
 
         return {
+            "whatsapp_message": whatsapp_message or "Concluí a operação e já tenho o resultado da API.",
             "operation": operation,
             "planner": planner_output,
             "api_result": api_result,

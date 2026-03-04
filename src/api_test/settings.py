@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     proraf_api_base_url: str = os.getenv("PRORAF_API_BASE_URL") or os.getenv("API_BASE_URL") or "https://proraf.cloud/api"
     proraf_api_key: str = os.getenv("PRORAF_API_KEY") or os.getenv("API_KEY") or ""
     proraf_secret_key: str = os.getenv("PRORAF_SECRET_KEY") or os.getenv("SECRET_KEY") or "your-secret-key-here-change-in-production-32-chars-min"
+    proraf_frontend_url: str = os.getenv("PRORAF_FRONTEND_URL") or "https://proraf.com.br"
 
     model_config = SettingsConfigDict(
         env_file=".env",
